@@ -41,8 +41,6 @@ def hash_to_number(string, mod):
 
 class Organism(object):
 
-    gene = ''
-
     int_to_str = {
             0: 'G',
             1: 'A',
@@ -82,11 +80,14 @@ class Organism(object):
 
     @property
     def fitness(self):
-        total = 0
-        num = 1
-        for selector in self.env.selectors:
-            total += self.window_search(selector)
-            num += 1
+        if len(self.genome) < GENE_MIN:
+            return self.env.lowest_fitness-1
+        total = self.env.get_fitness(self.genome)
+        if total is None:
+            total = 0
+            for selector in self.env.selectors:
+                total += self.window_search(selector)
+            self.env.store_fitness(self.genome, total)
         return total
 
     @staticmethod
