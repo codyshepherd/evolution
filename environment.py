@@ -1,6 +1,9 @@
 import random
 
-import organism
+import petname
+from termcolor import colored
+
+from organism import COLORS, hash_to_number, Organism, PROPERTIES
 
 MIN_NUM_SELECTORS = 5
 MAX_NUM_SELECTORS = 10
@@ -10,25 +13,47 @@ MIN_SELECTOR_SIZE = 5
 MAX_SELECTOR_SIZE = 50
 
 
+class Selector(object):
+
+    def __init__(self, ints):
+        self.selector_string = ''.join([Organism.int_to_str[i] for i in ints])
+        self.update()
+
+        self.name = petname.adjective()
+
+
+    def update(self):
+        self.index = hash(self.selector_string)
+        self.bg = COLORS[(self.index % (len(COLORS)-1))]
+        self.color = COLORS[self.index % len(COLORS)]
+        self.letter = Organism.compute_letter(self.selector_string, MIN_SELECTOR_SIZE, MAX_SELECTOR_SIZE)
+        self.prop = PROPERTIES[hash_to_number(self.selector_string, len(PROPERTIES))]
+
+        self.char = colored(self.letter, self.color, 'on_'+self.bg, attrs=[self.prop])
+
+
 class Environment(object):
 
     def __init__(self):
         self.selectors = []
         num_selectors = random.randint(MIN_NUM_SELECTORS, MAX_NUM_SELECTORS)
         for i in range(num_selectors):
-            selector = ''.join([organism.Organism.int_to_str[random.randint(0, 3)] for i in range(random.randint(MIN_SELECTOR_SIZE, MAX_SELECTOR_SIZE))])
-            self.selectors.append(selector)
+            ints = [random.randint(0, 3) for _ in range(random.randint(MIN_SELECTOR_SIZE, MAX_SELECTOR_SIZE))]
+            self.selectors.append(Selector(ints))
         self.fitness_db = {}    # (env.signature, org.gene): fitness
 
     def adjust(self):
         sel_index = random.randint(0, len(self.selectors)-1)
-        genome_index = random.randint(0, len(self.selectors[sel_index])-1)
-        selector = self.selectors[sel_index]
-        self.selectors[sel_index] = selector[:genome_index] + organism.Organism.int_to_str[random.randint(0, 3)] + selector[genome_index+1:]
+        chosen_selector = self.selectors[sel_index]
+        genome_index = random.randint(0, len(chosen_selector.selector_string)-1)
+        chosen_selector.selector_string = chosen_selector.selector_string[:genome_index] + \
+            Organism.int_to_str[random.randint(0, 3)] + \
+            chosen_selector.selector_string[genome_index+1:]
+        chosen_selector.update()
         adj_sels = random.choice(['add', 'drop', 'none'])
         print(f"adjustment type: {adj_sels}")
         if adj_sels == 'add':
-            new_selector = ''.join([organism.Organism.int_to_str[random.randint(0, 3)] for i in range(random.randint(MIN_SELECTOR_SIZE, MAX_SELECTOR_SIZE))])
+            new_selector = Selector([random.randint(0, 3) for _ in range(random.randint(MIN_SELECTOR_SIZE, MAX_SELECTOR_SIZE))])
             if len(self.selectors) < MAX_TOTAL_SELECTORS:
                 self.selectors.append(new_selector)
             else:
@@ -39,7 +64,7 @@ class Environment(object):
 
     @property
     def signature(self):
-        return ''.join(self.selectors)
+        return ''.join([selector.selector_string for selector in self.selectors])
 
     def store_fitness(self, gene, fitness):
         if len(self.fitness_db.keys()) == 0:

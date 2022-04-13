@@ -20,6 +20,9 @@ org3 = organism.Organism(env)
 
 population = sorted([org1, org2, org3], key=lambda x: x.fitness, reverse=True)
 
+MAX_SUCCESS_LIST_LEN = 10
+successful_list = []
+
 MIN_FITNESS = population[0].fitness
 OLD_MIN_FITNESS = MIN_FITNESS
 
@@ -63,6 +66,8 @@ while True:
 
     cprint(''.join([x.char for x in show_pop]) + f' gens: {generations} pop: {len(population)} best f: {population[0].fitness} worst f: {population[-1].fitness} min f: {MIN_FITNESS}')
 
+    last_gen = [x for x in population]
+
     # the N fittest reproduce with the M fittest
     repr_var_fn = random.choice([lambda x, y: x+y, lambda x, y: x-y])
     repr_base = len(population) // 2
@@ -77,8 +82,8 @@ while True:
         b = population[random.randint(0, repr_num-1)]
         population.append(a.reproduce(b))
 
-    # some number of the population undergoes mutation, possibly
-    num_mutate = random.randint(0, len(population))
+    # approx 10% of the population undergoes mutation
+    num_mutate = round(abs(random.gauss(mu=.1, sigma=.05))*len(population))
     mutate_pop = random.sample(population, num_mutate)
     for o in mutate_pop:
         o.mutate()
